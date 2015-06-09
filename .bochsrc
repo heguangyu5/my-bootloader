@@ -1,0 +1,5 @@
+config_interface: wx
+display_library: wx
+romimage: file=$BXSHARE/BIOS-bochs-latest
+vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
+floppya: 1_44=floppy.img, status=inserted
