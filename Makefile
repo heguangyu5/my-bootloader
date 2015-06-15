@@ -15,4 +15,8 @@ run-floppy:
 run-disk:
 	dd if=boot of=disk.img count=1 conv=notrunc
 	bochs 'boot:disk'
-
+write-usb:
+	sudo dd if=boot of=/dev/sdb count=1
+	sudo dd if=/dev/zero of=/dev/sdb seek=1 count=3
+	sudo dd if=800-chars.txt of=/dev/sdb seek=1 count=2
+	sudo hexdump -C -n 2048 /dev/sdb

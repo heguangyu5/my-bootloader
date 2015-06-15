@@ -22,7 +22,7 @@ ext_not_present:
 	call reset_disk
 	xorw %ax, %ax
 	movw %ax, %es
-	movw $0x7e01, %bx # 0x7c00 + 512 + 1
+	movw $0x7e00, %bx # 0x7c00 + 512 + 1
 	movb $0x02, %ah
 	movb $2, %al
 	movb $0, %ch
@@ -31,7 +31,7 @@ ext_not_present:
 	int $0x13
 	cmpb $0, %ah
 	jne error
-	movw $0x7e01, %si
+	movw $0x7e00, %si
 	call print_msg
 	jmp end
 
@@ -39,6 +39,21 @@ ext_present:
 	movw $msg_ext_present, %si
 	call print_msg
 	call reset_disk
+	xorw %ax, %ax
+	movw %ax, %ds
+	xorw $0x7e00, %si
+	movb $0x42, %ah
+	movb $16, (%si)
+	movb $0, 1(%si)
+	movw $2, 2(%si)
+	movl $0x00007e10, 4(%si)
+	movl $1, 8(%si)
+	movl $0, 12(%si)
+	int $0x13
+	jc error
+	movw $0x7e10, %si
+	call print_msg
+	jmp end
 
 reset_disk:
 	movb $0x00, %ah
