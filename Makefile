@@ -1,22 +1,24 @@
-all:
-	as -o boot.o boot.s
-	ld --oformat binary -N -Ttext=0x7c00 -o boot boot.o
-clean:
-	rm boot.o boot *.img
+stage1:
+	as -o stage1.o stage1.s
+	ld --oformat binary -N -Ttext=0x7c00 -o STAGE1 stage1.o
+	dd if=STAGE1 of=floppy.img count=1 conv=notrunc		
+stage2:
+	as -o stage2.o stage2.s
+	ld --oformat binary -N -Ttext=0x7c00 -o STAGE2.SYS stage2.o
+	sudo mount -t msdos -o loop,fat=12 floppy.img /mnt
+	sudo cp STAGE2.SYS /mnt
+	sudo umount /mnt
 floppy:
 	bximage -fd -size=1.44 -q floppy.img
-	dd if=800-chars.txt of=floppy.img seek=1 count=2 conv=notrunc
-disk:
-	bximage -hd  -mode=flat -size=10 -q disk.img
-	dd if=800-chars.txt of=disk.img seek=1 count=2 conv=notrunc
+	sudo losetup /dev/loop0 floppy.img
+	sudo mkdosfs -F 12 -R 2 /dev/loop0
+	sudo losetup -d /dev/loop0
 run-floppy:
-	dd if=boot of=floppy.img count=1 conv=notrunc		
 	bochs 'boot:floppy'
-run-disk:
-	dd if=boot of=disk.img count=1 conv=notrunc
-	bochs 'boot:disk'
-write-usb:
-	sudo dd if=boot of=/dev/sdb count=1
-	sudo dd if=/dev/zero of=/dev/sdb seek=1 count=3
-	sudo dd if=800-chars.txt of=/dev/sdb seek=1 count=2
-	sudo hexdump -C -n 2048 /dev/sdb
+clean:
+	rm *.o *.img test STAGE1 STAGE2.SYS
+test: test.s
+	as -o test.o test.s
+	ld --oformat binary -N -Ttext=0x7c00 -o test test.o
+	dd if=test of=floppy.img count=1 conv=notrunc
+	bochs 'boot:floppy'
