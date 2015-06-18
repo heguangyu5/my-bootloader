@@ -70,7 +70,7 @@ readSectors:
 		jnz sectorLoop
 		int $0x18
 	success:
-		movw msgProgress, %si
+		movw $msgProgress, %si
 		call print
 		popw %cx
 		popw %bx
@@ -95,9 +95,6 @@ clusterLBA:
 /**
  * convert LBA to CHS
  * %ax LBA address to convert
- * sector = (LBA % sectors per track) + 1
- * head   = (LBA / sectors per track) % number of heads
- * track  = LBA / (sectors per track * number of heads)
  */
 LBACHS:
 	xorw %dx, %dx
@@ -112,7 +109,7 @@ LBACHS:
 
 /* Bootloader Entry Point */
 main:
-	
+
 	cli
 	movw $0x07C0, %ax
 	movw %ax, %ds
@@ -121,7 +118,7 @@ main:
 	movw %ax, %gs
 
 	/* create stack */
-	movw $0x0000, %ax
+	xorw %ax, %ax
 	movw %ax, %ss
 	movw $0xFFFF, %sp # 64K
 	sti
@@ -138,17 +135,17 @@ main:
 		mulw bpbRootEntries
 		divw bpbBytesPerSector
 		xchgw %cx, %ax				# %cx (root dir table sectors) now should be 14 = 32B * 224 / 512B
-		
+
 		movb bpbNumberOfFATs, %al
 		mulb bpbSectorsPerFAT
 		addw bpbReservedSectors, %ax
 		movw %ax, datasector
 		addw %cx, datasector
-		
+
 		# read root dir table into memory (0x07C0:0200)
 		movw $0x0200, %bx
 		call readSectors
-	
+
 	/* find stage 2 */
 		movw bpbRootEntries, %cx
 		movw $0x0200, %di
@@ -164,7 +161,7 @@ main:
 			addw $32, %di
 			loop findStart
 			jmp FAILURE
-			
+
 	/* load FAT */
 	loadFAT:
 		movw $msgCRLF, %si
@@ -221,13 +218,13 @@ main:
 		movw %dx, cluster
 		cmpw $0x0FF0, %dx
 		jb loadImage
-	
+
 		movw $msgCRLF, %si
 		call print
 		pushw $0x0050
 		pushw $0x0000
 		retf
-		
+
 	FAILURE:
 		movw $msgFailure, %si
 		call print
@@ -246,6 +243,6 @@ msgLoading:		.string "\r\nLoading Boot Image\r\n"
 msgCRLF: 		.string "\r\n"
 msgProgress: 	.string "."
 msgFailure: 	.string "\r\nError: Press Any Key to Reboot\r\n"
-	
+
 	.org 510
 	.word 0xaa55
