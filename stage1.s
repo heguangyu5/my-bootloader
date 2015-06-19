@@ -139,6 +139,7 @@ main:
 		movb bpbNumberOfFATs, %al
 		mulb bpbSectorsPerFAT
 		addw bpbReservedSectors, %ax
+		incw %ax
 		movw %ax, datasector
 		addw %cx, datasector
 
@@ -152,7 +153,7 @@ main:
 		findStart:
 			pushw %cx
 			movw $11, %cx
-			movw imageName, %si
+			movw $imageName, %si
 			pushw %di
 			rep cmpsb
 			popw %di
@@ -163,6 +164,7 @@ main:
 			jmp FAILURE
 
 	/* load FAT */
+	/* @see http://www.win.tue.nl/~aeb/linux/fs/fat/fat-1.html for more about FAT */
 	loadFAT:
 		movw $msgCRLF, %si
 		call print
@@ -175,6 +177,7 @@ main:
 		movw %ax, %cx
 
 		movw bpbReservedSectors, %ax
+		incw %ax
 
 		# read FAT into memory (0x07C0:0200)
 		movw $0x0200, %bx
@@ -202,8 +205,8 @@ main:
 		movw cluster, %ax
 		movw %ax, %cx
 		movw %ax, %dx
-		shr $1, %dx
-		add %dx, %cx
+		shrw $1, %dx
+		addw %dx, %cx
 		movw $0x0200, %bx
 		addw %cx, %bx
 		movw (%bx), %dx
@@ -221,9 +224,7 @@ main:
 
 		movw $msgCRLF, %si
 		call print
-		pushw $0x0050
-		pushw $0x0000
-		retf
+		ljmp $0x0050, $0x0000
 
 	FAILURE:
 		movw $msgFailure, %si
@@ -238,7 +239,7 @@ absoluteTrack:	.byte 0
 
 datasector: 	.word 0
 cluster:		.word 0
-imageName:		.ascii "KRNLDR  SYS"
+imageName:		.ascii "STAGE2  SYS"
 msgLoading:		.string "\r\nLoading Boot Image\r\n"
 msgCRLF: 		.string "\r\n"
 msgProgress: 	.string "."
