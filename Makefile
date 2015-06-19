@@ -4,7 +4,7 @@ stage1:
 	dd if=STAGE1 of=floppy.img count=1 conv=notrunc		
 stage2:
 	as -o stage2.o stage2.s
-	ld --oformat binary -N -Ttext=0x0000 -o STAGE2.SYS stage2.o
+	ld --oformat binary -N -Ttext=0x0500 -o STAGE2.SYS stage2.o
 	sudo mount -t msdos -o loop,fat=12 floppy.img /mnt
 	sudo cp STAGE2.SYS /mnt
 	sudo umount /mnt

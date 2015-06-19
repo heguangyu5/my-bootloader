@@ -247,3 +247,13 @@ msgFailure: 	.string "\r\nError: Press Any Key to Reboot\r\n"
 
 	.org 510
 	.word 0xaa55
+
+/**
+ * 内存布局:
+ * DS = ES = 0x07C0
+ * SS:SP = 0x0000:0xFFFF = 64K
+ * Root Direcotry Table (7K) then FAT (9K)  = 38.5K  then = 40.5K
+ * boot sector 0x7DFF	 = 31.5K
+ * CS:IP = 0x0000:0x7C00 = 31K
+ * STAGE2 = 0x0500 = 1.25K
+ */
