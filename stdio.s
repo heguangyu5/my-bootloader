@@ -112,8 +112,8 @@ clearScreen32:
 	pusha
 	cld
 	movl $VIDMEM, %edi
-	movw $2000, %cx
-	movb CHAR_ARRT, %ah
+	movl $2000, %ecx
+	movb $CHAR_ARRT, %ah
 	movb $' ', %al
 	rep stosw
 
