@@ -16,35 +16,36 @@ print16Done:
 .equ VIDMEM, 0xB8000
 .equ COLS, 80
 .equ LINES,	25
-.equ CHAR_ARRT,	63
+.equ CHAR_ARRT,	63 # 0x3F = 0x0011 1111 = 001(fg) 1 111(bg) 1 = 
 
 curX: .byte 0
 curY: .byte 0
 
+/**
+ * %bl the char to print
+ */
 putc32:
 	pusha
-	movl $VIDMEM, %edi
-	xorl %eax, %eax
-	movl $COLS * 2, %ecx
-	movb curY, %al
-	mull %ecx
-	pushl %eax
 
-	movb curX, %al
-	movb $2, %cl
-	mulb %cl
-	popl %ecx
+	# (curY * COLS + x) * 2
+	xor %eax, %eax
+	movb curY, %eax
+	mov $COLS, %ecx
+	mul %ecx
+	xor %ecx, %ecx
+	movb curX, %cl
 	add %ecx, %eax
+	mov $2, %ecx
+	mul %ecx
 
-	xorl %ecx, %ecx
+	movl $VIDMEM, %edi
 	add %eax, %edi
 
 	cmpb $0x0a, %bl
 	je nextRow
 
-	movb %bl, %dl
-	movb $CHAR_ARRT, %dh
-	movw %dx, (%edi)
+	movb $CHAR_ARRT, %bh
+	movw %bx, (%edi)
 
 	incb curX
 	cmpb $COLS, curX
@@ -58,19 +59,20 @@ putc32Done:
 	popa
 	ret
 
+/**
+ * %ebx string start address
+ */
 puts32:
 	pusha
-	pushl %ebx
-	popl %edi
 
+	mov %ebx, %edi
 putcLoop:
-	movb (%edi), %bl
-	cmpb $0, %bl
+	mov (%edi), %bl
+	cmp $0, %bl
 	je puts32Done
 	call putc32
-	incl %edi
+	inc %edi
 	jmp putcLoop
-
 puts32Done:
 	movb curY, %bh
 	movb curX, %bl
@@ -78,32 +80,41 @@ puts32Done:
 
 	popa
 	ret
-
+/**
+ * %bh: Y
+ * %bl: X
+ */
 movCur:
 	pusha
 
-	xorl %eax, %eax
-	movl $COLS, %ecx
-	movb %bh, %al
-	mull %ecx
-	addb %bl, %al
-	movl %eax, %ebx
+	# cursor location = Y * COLS + x
+	xor %eax, %eax
+	mov %bh, %al
+	mov $COLS, %ecx
+	mul %ecx
+	mov %eax, %ebx
+	xor %ecx, %ecx
+	mov %bl, %cl
+	add %ecx, %ebx
 
-	movb $0x0f, %al
-	movw $0x03d4, %dx
-	outb %al, %dx
+	# cursor location low byte
+	xor %ax, %ax
+	mov $0x0f, %al
+	mov $0x03d4, %dx # Index Register
+	out %ax, %dx
 	
-	movb %bl, %al
-	movw $0x03d5, %dx
-	outb %al, %dx
+	mov %bl, %al
+	mov $0x03d5, %dx # Data Register
+	out %ax, %dx
 
-	movb $0x0e, %al
-	movw $0x03d4, %dx
-	outb %al, %dx
+	# cursor location high byte
+	mov $0x0e, %al
+	mov $0x03d4, %dx # Index Register
+	out %ax, %dx
 
-	movb %bh, %al
-	movw $0x03d5, %dx
-	outb %al, %dx
+	mov %bh, %al
+	mov $0x03d5, %dx # Data Register
+	out %ax, %dx
 
 	popa
 	ret
@@ -111,10 +122,11 @@ movCur:
 clearScreen32:
 	pusha
 	cld
-	movl $VIDMEM, %edi
-	movl $2000, %ecx
-	movb $CHAR_ARRT, %ah
-	movb $' ', %al
+
+	mov $VIDMEM, %edi
+	mov $2000, %ecx     # 80 * 25 = 2000 chars
+	mov $CHAR_ARRT, %ah
+	mov $' ', %al
 	rep stosw
 
 	movb $0, curX
@@ -123,9 +135,15 @@ clearScreen32:
 	popa
 	ret
 
+/**
+ * %ah = Y
+ * %al = X
+ */
 gotoXY:
 	pusha
-	movb %al, curX
+
 	movb %ah, curY
+	movb %al, curX
+
 	popa
 	ret
