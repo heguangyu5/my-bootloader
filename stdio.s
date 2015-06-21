@@ -29,7 +29,7 @@ putc32:
 
 	# (curY * COLS + x) * 2
 	xor %eax, %eax
-	movb curY, %eax
+	movb curY, %al
 	mov $COLS, %ecx
 	mul %ecx
 	xor %ecx, %ecx
