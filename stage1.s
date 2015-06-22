@@ -94,6 +94,7 @@ LoadStage2:
 	pop %es
 	xor %bx, %bx
 	pop %di
+	mov datasector, %cx
 	call LoadFile
 	cmp $-1, %ax
 	je  FAILURE
@@ -106,11 +107,11 @@ FAILURE:
 	int $0x16		# await keypress
 	int $0x19		# warm boot computer
 
-msgLoadRoot:	.string "Load Root\r\n"
-msgFindStage2:	.string "Find STAGE2.SYS\r\n"
-msgLoadFAT:		.string "Load FAT\r\n"
+msgLoadRoot:	.string "Load Root."
+msgFindStage2:	.string "Find STAGE2.SYS."
+msgLoadFAT:		.string "Load FAT."
 imageName:		.ascii "STAGE2  SYS"
-msgLoadStage2:	.string "Load STAGE2.SYS\r\n"
+msgLoadStage2:	.string "Load STAGE2.SYS."
 msgFailure: 	.string "Error: Press Any Key to Reboot\r\n"
 
 .include "print16.s"

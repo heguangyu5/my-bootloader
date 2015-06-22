@@ -3,39 +3,74 @@
 _start:
 	jmp main
 
-.include "stdio.s"
+.include "print16.s"
+.include "floppy16.s"
 .include "gdt.s"
+.include "initdatasector.s"
 
-loadingMsg:
-	.string "Preparing to load opereating system...\r\n"
-
+kernelName: .ascii "KRNL    SYS"
+kernelSize: .int 0
+loadingMsg: .string "\r\nSearching for Opereating System...\r\n"
+msgFailure: .string "*** FATAL: MISSING OR CURRUPT KRNL.SYS. Press Any Key to Reboot\r\n"
 
 /* Second Stage Loader Entry Point */
 main:
 	/* set up segments and stack */
 	cli
-	xorw %ax, %ax
-	movw %ax, %ds
-	movw %ax, %es
-	movw $0x9000, %ax
-	movw %ax, %ss
-	movw $0xffff, %sp
+	xor %ax, %ax
+	mov %ax, %ds
+	mov  $0x07C0, %ax
+	mov %ax, %es
+	mov $0x9000, %ax
+	mov %ax, %ss
+	mov $0xffff, %sp
 	sti
+	/* init datasector */
+	call initdatasector
 
 	call installGDT
 
 	# enable A20
-	movb $0xdd, %al
-	outb %al, $0x64
+	mov $0xdd, %al
+	out %al, $0x64
 	waitInput:
-		inb $0x64, %al
-		testb $2, %al
+		in $0x64, %al
+		test $2, %al
 		jnz waitInput
 
-	movw $loadingMsg, %si
+FindKernel:
+	mov $loadingMsg, %si
 	call print16
-
-
+	mov $kernelName, %si
+	mov $0x0200, %di
+	call FindFile
+	cmp $-1, %ax
+	je KernelNotFound
+	mov datasector, %cx
+	mov $0x07C0, %ax
+	mov %ax, %ds
+	mov $0x1E00, %si
+	mov $0x0300, %ax
+	mov %ax, %es
+	xor %bx, %bx
+	movl 28(%di), %eax
+	push %ds
+	push $0
+	pop %ds
+	movl %eax, kernelSize
+	pop %ds
+	call LoadFile
+	jmp EnterStage3
+KernelNotFound:
+	mov $msgFailure, %si
+	call print16
+	xor %ah, %ah
+	int $0x16
+	int $0x19
+	cli
+	hlt
+	
+EnterStage3:
 	# protect mode
 	cli
 	movl %cr0, %eax
@@ -46,9 +81,14 @@ main:
 
 /**
  * 上边的内存布局:
- * SS:SP = 0x9000:0xFFFF = 640K
- * CS:IP = 0x0050:0x0000 = 1.25K
+ * Stack 		= 0x9000:0xFFFF = 640K
+ * FAT			= 0x9A00 = 38.5K (9K) offset = 0x1E00
+ * Root 		= 0x7E00 = 31.5K (7K) offset = 0x0200
+ * Boot Sector 	= 0x7C00 = 31K (0.5K)
+ * Kernel		= 0x3000 = 12K
+ * This STAGE2	= 0x0500 = 1.25K
  */
+.include "stdio.s"
 
 .code32
 stage3:
@@ -58,19 +98,27 @@ stage3:
 	movw %ax, %es
 	movl $0x90000, %esp
 
-	call clearScreen32
-	movl $msg, %ebx
-	call puts32
+	# copy kernel to 1MB
+CopyKernel:
+	xor %edx, %edx
+	mov kernelSize, %eax	
+	mov $4, %ebx
+	div %ebx
+	cld
+	mov $0x3000, %esi
+	mov $0x100000, %edi
+	mov %eax, %ecx
+	rep movsd
 
-stop:
+	ljmp $0x08, $0x100000
+
+
 	cli
 	hlt
 
-msg:
-	.string "\n\n\n      <[ OS Development Series ]>\n\n    Basic 32 bit graphics demo in Assembly Language"
-
 /**
  * 内存布局:
- * SS:SP = 0x10:0x90000 = 576K
- * CS:IP = 0x0050:0x0000 = 1.25K
+ * KRNL.SYS	   = 0x100000	  = 1M
+ * Stack SS:SP = 0x10:0x90000 = 576K
+ * KRNL.SYS	   = 0x3000		  = 12K
  */

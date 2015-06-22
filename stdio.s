@@ -1,17 +1,3 @@
-.code16
-print16:
-	pusha
-print16Loop:
-	lodsb
-	orb %al, %al
-	jz print16Done
-	movb $0x0e, %ah
-	int $0x10
-	jmp print16Loop
-print16Done:
-	popa
-	ret
-
 .code32
 .equ VIDMEM, 0xB8000
 .equ COLS, 80

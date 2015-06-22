@@ -6,6 +6,9 @@
 .equ sectorsPerTrack, 18
 .equ headsPerCylinder, 2
 .equ rootEntries, 224
+.equ numberOfFATs, 2
+.equ sectorsPerFAT, 9
+.equ reservedSectors, 2
 
 FATSectors: .byte 0
 
@@ -19,15 +22,15 @@ absoluteTrack:	.byte 0
 /**
  * %ax: the cluster
  * LBA = (cluster - 2) * sectors per cluster
+ * %cx = datasector
  */
 ClusterLBA:
 	push %cx
 	sub $2, %ax
-	xor %cx, %cx
-	mov $sectorsPerCluster, %cl
+	mov $sectorsPerCluster, %cx
 	mul %cx
-	add datasector, %ax
 	pop %cx
+	add %cx, %ax
 	ret
 
 /**
@@ -119,6 +122,7 @@ FindFile:
  * %ds:%di file entry
  * %ds:%si FAT
  * %es:%bx buffer
+ * %cx datasector
  */
 LoadFile:
 	mov 26(%di), %ax
@@ -127,6 +131,7 @@ LoadFile:
 	LF_RS:
 		mov cluster, %ax
 		call ClusterLBA
+		push %cx
 		mov $sectorsPerCluster, %cx
 		call ReadSectors
 
@@ -136,9 +141,10 @@ LoadFile:
 		mov %ax, %cx
 		shr $1, %dx
 		add %dx, %ax
+		push %si
 		add %ax, %si
-
 		mov (%si), %ax
+		pop %si
 		test $1, %cx
 		jz LF_evenCluster
 		shr $4, %ax
@@ -146,6 +152,7 @@ LoadFile:
 	LF_evenCluster:
 		and $0b0000111111111111, %ax
 	LF_RS_DONE:
+		pop %cx
 		mov %ax, cluster
 		cmp $0x0FF0, %ax
 		jb LF_RS

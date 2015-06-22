@@ -3,4 +3,4 @@
 boot
 test
 STAGE1
-STAGE2.SYS
+*.SYS

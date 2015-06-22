@@ -8,6 +8,12 @@ stage2:
 	sudo mount -t msdos -o loop,fat=12 floppy.img /mnt
 	sudo cp STAGE2.SYS /mnt
 	sudo umount /mnt
+stage3:
+	as -o stage3.o stage3.s
+	ld --oformat binary -N -Ttext=0x0000 -o KRNL.SYS stage3.o
+	sudo mount -t msdos -o loop,fat=12 floppy.img /mnt
+	sudo cp KRNL.SYS /mnt
+	sudo umount /mnt
 floppy:
 	bximage -fd -size=1.44 -q floppy.img
 	sudo losetup /dev/loop0 floppy.img
@@ -16,7 +22,7 @@ floppy:
 run-floppy:
 	bochs -q 'boot:floppy'
 clean:
-	rm *.o *.img test STAGE1 STAGE2.SYS
+	rm *.o *.img *.SYS STAGE1 test
 test: test.s
 	as -o test.o test.s
 	ld --oformat binary -N -Ttext=0x7c00 -o test test.o
