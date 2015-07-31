@@ -29,3 +29,9 @@ test: test.s
 	dd if=test of=floppy.img count=1 conv=notrunc
 run-test:
 	bochs -q 'boot:floppy'
+bios-call: bios-call.s
+	as -o bios-call.o bios-call.s
+	ld --oformat binary -N -Ttext=0x0500 -o BIOS.SYS bios-call.o
+	sudo mount -t msdos -o loop,fat=12 floppy.img /mnt
+	sudo cp BIOS.SYS /mnt/STAGE2.SYS
+	sudo umount /mnt
